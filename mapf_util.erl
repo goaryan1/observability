@@ -664,7 +664,6 @@ debug_input(StaticInputFilename, PathCalcInputFilename) ->
     {_SeqNo1, ResTable1, Result1} = reservation_table:update(
         {?UNDEFINED, 1}, {ButlerId, ButlerDir}, Result, AppConfig1, GridLayout, ResTable0, Options
     ),
-    debug_restable("Result ResTable from mapf_util", ResTable1),
     #mapf_path_calc_result{path_list = PathList2} = Result1,
     io:format(
         "StartTime ~p~n"
@@ -693,6 +692,60 @@ get_stop_duration(GoalType, AppConfig) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+get_timed_reservations(Coordinate, ResMap) ->
+    Fun = fun(Coord, CoordResMap) ->
+        case Coord of
+            Coordinate ->
+                CoordResMap1 = maps:map(
+                    fun(Butler, Value, _) ->
+                        ButlerResList = lists:map(
+                            fun({_, _, _, StartTime, EndTime}) ->
+                                {Butler, StartTime, EndTime}
+                            end,
+                            Value
+                        ),
+                        ButlerResList
+                    end,
+                    CoordResMap
+                ),
+                CoordResMap1;
+            _ ->
+                ok
+        end
+    end,
+    FilteredResMap = maps:map(Fun, ResMap),
+    FilteredResMap.
+
+get_idle_reservations(Coordinate, BidleMap) ->
+    Fun = fun(_Butler, Value) ->
+        IdleList = Value#reservation_idle_data.idle_list,
+        NewList = lists:map(
+            fun({_, Coord, StartTime}) ->
+                case Coord == Coordinate of
+                    true ->
+                        {StartTime};
+                    false ->
+                        ok
+                end
+            end,
+            IdleList
+        ),
+        NewList
+    end,
+    FilteredBidleMap = maps:map(Fun, BidleMap),
+    FilteredBidleMap1 = maps:filtermap(
+        fun(_Key, Value) ->
+            Value /= [ok]
+        end,
+        FilteredBidleMap
+    ),
+    FilteredBidleMap1,
+    ResultList = [
+        {Key, X}
+     || {Key, TupleList} <- maps:to_list(FilteredBidleMap1), {X} <- TupleList
+    ],
+    ResultList.
+
 -spec print_reservations_for_coordinate_helper(
     Coordinate :: {X :: integer(), Y :: integer()},
     ResTable :: reservation_table()
@@ -712,50 +765,12 @@ print_reservations_for_coordinate_helper(Coordinate, ResTable) ->
     % io:format("Res Map:\n~p\n", [ResMap]),
 
     % timed reservations
-    io:format("Timed Reservations: \n"),
-    case maps:is_key(Coordinate, ResMap) of
-        true ->
-            X = maps:get(Coordinate, ResMap),
-            maps:fold(
-                fun(Key, Value, _) ->
-                    Butler = Key,
-                    lists:foreach(
-                        fun({_, _, _, StartTime, EndTime}) ->
-                            Output = {Butler, StartTime, EndTime},
-                            io:format("~p\n", [Output])
-                        end,
-                        Value
-                    )
-                end,
-                ok,
-                X
-            );
-        false ->
-            io:format("")
-    end,
+    FilteredResMap = get_timed_reservations(Coordinate, ResMap),
+    io:format("FilteredResMap: ~p\n", [FilteredResMap]),
 
     % idle reservations
-    io:format("Idle Reservations: \n"),
-    maps:fold(
-        fun(Key, Value, _) ->
-            Butler = Key,
-            {_, _, _, IdleList} = Value,
-            lists:foreach(
-                fun({_, Coord, StartTime}) ->
-                    case Coord == Coordinate of
-                        true ->
-                            Output = {Butler, StartTime},
-                            io:format("~p\n", [Output]);
-                        false ->
-                            io:format("")
-                    end
-                end,
-                IdleList
-            )
-        end,
-        ok,
-        BidleMap
-    ).
+    IdleResList = get_idle_reservations(Coordinate, BidleMap),
+    io:format("FilteredBidleMap: ~p\n", [IdleResList]).
 
 print_reservations_for_coordinate(Coordinate) ->
     PathCalcInputFilename =
