@@ -664,6 +664,7 @@ debug_input(StaticInputFilename, PathCalcInputFilename) ->
     {_SeqNo1, ResTable1, Result1} = reservation_table:update(
         {?UNDEFINED, 1}, {ButlerId, ButlerDir}, Result, AppConfig1, GridLayout, ResTable0, Options
     ),
+    debug_restable("Result ResTable from mapf_util", ResTable1),
     #mapf_path_calc_result{path_list = PathList2} = Result1,
     io:format(
         "StartTime ~p~n"
@@ -697,7 +698,7 @@ get_timed_reservations(Coordinate, ResMap) ->
         case Coord of
             Coordinate ->
                 CoordResMap1 = maps:map(
-                    fun(Butler, Value, _) ->
+                    fun(Butler, Value) ->
                         ButlerResList = lists:map(
                             fun({_, _, _, StartTime, EndTime}) ->
                                 {Butler, StartTime, EndTime}
@@ -714,7 +715,21 @@ get_timed_reservations(Coordinate, ResMap) ->
         end
     end,
     FilteredResMap = maps:map(Fun, ResMap),
-    FilteredResMap.
+    FilteredResMap,
+    % create FilterResMap1 by removing ok from values
+    FilteredResMap1 = maps:filtermap(
+        fun(_Key, Value) ->
+            Value /= ok
+        end,
+        FilteredResMap
+    ),
+    TimedResList = [
+        {Value}
+     || {_Key1, InnerMap} <- maps:to_list(FilteredResMap1),
+        {_Key2, ValueList} <- maps:to_list(InnerMap),
+        Value <- ValueList
+    ],
+    TimedResList.
 
 get_idle_reservations(Coordinate, BidleMap) ->
     Fun = fun(_Butler, Value) ->
@@ -765,8 +780,8 @@ print_reservations_for_coordinate_helper(Coordinate, ResTable) ->
     % io:format("Res Map:\n~p\n", [ResMap]),
 
     % timed reservations
-    FilteredResMap = get_timed_reservations(Coordinate, ResMap),
-    io:format("FilteredResMap: ~p\n", [FilteredResMap]),
+    TimedResList = get_timed_reservations(Coordinate, ResMap),
+    io:format("FilteredResMap: ~p\n", [TimedResList]),
 
     % idle reservations
     IdleResList = get_idle_reservations(Coordinate, BidleMap),
@@ -774,9 +789,69 @@ print_reservations_for_coordinate_helper(Coordinate, ResTable) ->
 
 print_reservations_for_coordinate(Coordinate) ->
     PathCalcInputFilename =
-        "/tmp/cowhca-debug-input-1713426651562/path-calc-input-300-1713426654879.txt",
+        "/tmp/cowhca-debug-input-1713443603888/path-calc-input-300-1713443608614.txt",
+    StaticInputFilename =
+        "/tmp/cowhca-debug-input-1713443603888/static-input.txt",
     {ok, FileContent} = file:read_file(PathCalcInputFilename),
     {_, _, _, _, #reservation_table{} = ResTable, _, _, _, _, _} = erlang:binary_to_term(
         FileContent
     ),
-    print_reservations_for_coordinate_helper(Coordinate, ResTable).
+
+    io:format("Original reservations:\n"),
+    print_reservations_for_coordinate_helper(Coordinate, ResTable),
+
+    ResTable1 = get_next_res_table(StaticInputFilename, PathCalcInputFilename),
+    io:format("Next reservations:\n"),
+    print_reservations_for_coordinate_helper(Coordinate, ResTable1).
+
+get_next_res_table(StaticInputFilename, PathCalcInputFilename) ->
+    {ok, StaticFileContent} = file:read_file(StaticInputFilename),
+    {GridLayout, AppConfig0} = erlang:binary_to_term(StaticFileContent),
+    {ok, FileContent} = file:read_file(PathCalcInputFilename),
+    {
+        {ButlerId, RackId, ButlerType, LiftState, Options},
+        {StartCoor, {ButlerDir, RackDir}},
+        {EndCoor, EndDir},
+        StartTime,
+        #reservation_table{} = ResTable0,
+        {HeuristicsInfo, ButlerMovementInfo, RackInfo, VisitedNodeMap},
+        LastWindowEndNode,
+        ReservedPath,
+        RemainingPath,
+        ButlerMoveStatus
+    } = erlang:binary_to_term(FileContent),
+    AppConfig1 = app_config:set_mapf_debug_mode(true, AppConfig0),
+    Result = co_whca_path_calc:path_calc({
+        {ButlerId, RackId, ButlerType, LiftState, Options},
+        {StartCoor, {ButlerDir, RackDir}},
+        {EndCoor, EndDir},
+        StartTime,
+        #reservation_table{} = ResTable0,
+        AppConfig1,
+        {GridLayout, HeuristicsInfo, ButlerMovementInfo, RackInfo, VisitedNodeMap},
+        LastWindowEndNode,
+        ReservedPath,
+        RemainingPath,
+        ButlerMoveStatus
+    }),
+    #mapf_path_calc_result{
+        result_tag = _ResultTag1,
+        lift_state = _LiftState1,
+        msg_ref = _MsgRef1,
+        path_list = _PathList1,
+        open_node = _OpenNode1,
+        start_coor = _StartCoor1,
+        start_time = _StartTime1,
+        end_coor = _EndCoor1,
+        end_dir = _EndDir1,
+        idle_list = _IdleList1,
+        is_destination_coordinate_in_idle_butler_map = _IsDestinationInIdleMap1,
+        error_reason = _ErrorReason1,
+        error_value = _ErrorValue1,
+        old_path = _OldPath1,
+        path_calculation_data = _PathCalcData1
+    } = Result,
+    {_SeqNo1, ResTable1, _Result1} = reservation_table:update(
+        {?UNDEFINED, 1}, {ButlerId, ButlerDir}, Result, AppConfig1, GridLayout, ResTable0, Options
+    ),
+    ResTable1.
