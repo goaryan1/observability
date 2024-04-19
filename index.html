@@ -49,71 +49,73 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script>
-    // setup 
-    const data = {
-      datasets: [{
-        label: 'Weekly Sales',
-        data: [
-            {x: ['2022-10-02', '2022-10-08'], y: 'Task 1'},
-            {x: ['2022-10-05', '2022-10-06'], y: 'Task 2'},
-            {x: ['2022-10-08', '2022-10-014'], y: 'Task 3'},
-            {x: ['2022-10-21', '2022-10-30'], y: 'Task 4'},
-            {x: ['2022-10-012', '2022-10-16'], y: 'Task 5'},
-            {x: ['2022-10-09', '2022-10-023'], y: 'Task 6'}
-        ],
-        backgroundColor: [
-          'rgba(255, 26, 104, 0.2)',
-          'rgba(54, 162, 235, 0.2)',
-          'rgba(255, 206, 86, 0.2)',
-          'rgba(75, 192, 192, 0.2)',
-          'rgba(153, 102, 255, 0.2)',
-          'rgba(255, 159, 64, 0.2)',
-          'rgba(0, 0, 0, 0.2)'
-        ],
-        borderColor: [
-          'rgba(255, 26, 104, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(153, 102, 255, 1)',
-          'rgba(255, 159, 64, 1)',
-          'rgba(0, 0, 0, 1)'
-        ],
-        borderWidth: 1,
-        borderSkipped: false
-      }]
-    };
+    // setup
+    fetch('data.json')
+        .then(response => response.json())
+        .then(data1 => {
+            strJsonData1 = JSON.stringify(data1);
+            JsonData1 = JSON.parse(strJsonData1);
 
-    console.log(data.datasets);
+            TimedResList = JsonData1.timed_reservations;
 
-    // config 
-    const config = {
-      type: 'bar',
-      data,
-      options: {
-        indexAxis: 'y',
-        scales: {
-          x: {
-            type: 'time',
-            time: {
-                unit: 'day'
-            },
-            min: '2022-10-01',
-            max: '2022-10-31'
-          }
+            for (let i = 0; i < TimedResList.length; i++) {
+                reservation = TimedResList[i];
+                const butlerId = reservation.butler_id;
+                const startTime = reservation.start_time;
+                const endTime = reservation.end_time;
+
+                TimedResList[i] = {x: [startTime, endTime], y: butlerId};
+            }
+
+            fetchedData = data1;
+            const data = {
+                datasets: [{
+                    label: 'Reservations',
+                    // data: [
+                    //     {x: ['2022-10-02', '2022-10-08'], y: 'Task 1'},
+                    //     {x: ['2022-10-05', '2022-10-06'], y: 'Task 2'},
+                    //     {x: ['2022-10-08', '2022-10-014'], y: 'Task 3'},
+                    //     {x: ['2022-10-21', '2022-10-30'], y: 'Task 4'},
+                    //     {x: ['2022-10-012', '2022-10-16'], y: 'Task 5'},
+                    //     {x: ['2022-10-09', '2022-10-023'], y: 'Task 6'}
+                    // ],
+                    data: TimedResList,
+                    borderWidth: 1,
+                    borderSkipped: false
+                }]
+            };
+            console.log(typeof data.datasets);
+            const config = {
+                type: 'bar',
+                data,
+                options: {
+                    indexAxis: 'y',
+                    scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day'
+                        },
+                        min: '2022-10-01',
+                        max: '2022-10-31'
+                    }
+                    }
+                }
+                };
+                // render init block
+                const myChart = new Chart(
+                document.getElementById('myChart'),
+                config
+                );
+
+                // Instantly assign Chart.js version
+                const chartVersion = document.getElementById('chartVersion');
+                chartVersion.innerText = Chart.version;
+        })
+        .catch(error => {
+            console.error('Error fetching JSON data:', error);
         }
-      }
-    };
-
-    // render init block
-    const myChart = new Chart(
-      document.getElementById('myChart'),
-      config
     );
-
-    // Instantly assign Chart.js version
-    const chartVersion = document.getElementById('chartVersion');
-    chartVersion.innerText = Chart.version;
     </script>
 
   </body>
