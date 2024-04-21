@@ -1,0 +1,29 @@
+{
+  "coordinate": {
+    "x": 24,
+    "y": 33
+  },
+  "timed_reservations": [
+    {
+      "butler_id": 300,
+      "start_time": 0,
+      "end_time": 20
+    },
+    {
+      "butler_id": 301,
+      "start_time": 25,
+      "end_time": 45
+    },
+    {
+      "butler_id": 302,
+      "start_time": 45,
+      "end_time": 50
+    }
+  ],
+  "idle_reservations": [
+    {
+      "butler_id": 301,
+      "start_time": 65
+    }
+  ]
+}
