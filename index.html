@@ -41,7 +41,7 @@
 
 <body>
   <div class="chartMenu">
-    <p>Reservations for Coordinate: <span id="chartVersion"></span></p>
+    <p>Reservations for Coordinate: <span id="x_coordinate"></span>, <span id="y_coordinate"></span></p>
   </div>
   <div class="chartCard">
     <div class="chartBox">
@@ -68,6 +68,9 @@
 
         console.log("TimedResList: ", TimedResList);
         console.log("IdleResList: ", IdleResList);
+        console.log("Coordinate: ", Coordinate);
+        
+        Coordinate = jsonify(Coordinate);
 
         for (let i = 0; i < TimedResList.length; i++) {
           reservation = TimedResList[i];
@@ -152,8 +155,10 @@
         );
 
         // Instantly assign Chart.js version
-        const chartVersion = document.getElementById('chartVersion');
-        chartVersion.innerText = Chart.version;
+        const x_coordinate = document.getElementById('x_coordinate');
+        x_coordinate.innerText = Coordinate.x;
+        const y_coordinate = document.getElementById('y_coordinate');
+        y_coordinate.innerText = Coordinate.y;
       })
       .catch(error => {
           console.error('Error fetching JSON data:', error);
