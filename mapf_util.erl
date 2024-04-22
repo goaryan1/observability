@@ -761,6 +761,30 @@ get_idle_reservations(Coordinate, BidleMap) ->
     ],
     ResultList.
 
+convert_to_json(TimedResList, IdleResList, Coordinate) ->
+    TimedReservations = convert_timed_reservations(TimedResList),
+    IdleReservations = convert_idle_reservations(IdleResList),
+    CoordinateJson = convert_coordinate(Coordinate),
+    #{<<"coordinate">> => CoordinateJson,
+      <<"timed_reservations">> => TimedReservations,
+      <<"idle_reservations">> => IdleReservations}.
+
+convert_timed_reservations(TimedResList) ->
+    lists:map(fun({{A, B, C}}) ->
+                        #{<<"butler_id">> => A,
+                          <<"start_time">> => B,
+                          <<"end_time">> => C}
+                end, TimedResList).
+
+convert_idle_reservations(IdleResList) ->
+    lists:map(fun({A, B}) ->
+                        #{<<"butler_id">> => A,
+                          <<"start_time">> => B}
+                end, IdleResList).
+
+convert_coordinate({X, Y}) ->
+    #{<<"x">> => X, <<"y">> => Y}.
+
 -spec print_reservations_for_coordinate_helper(
     Coordinate :: {X :: integer(), Y :: integer()},
     ResTable :: reservation_table()
@@ -781,28 +805,34 @@ print_reservations_for_coordinate_helper(Coordinate, ResTable) ->
 
     % timed reservations
     TimedResList = get_timed_reservations(Coordinate, ResMap),
-    io:format("FilteredResMap: ~p\n", [TimedResList]),
+    io:format("TimedResList: ~p\n", [TimedResList]),
 
     % idle reservations
     IdleResList = get_idle_reservations(Coordinate, BidleMap),
-    io:format("FilteredBidleMap: ~p\n", [IdleResList]).
+    io:format("IdleResList: ~p\n", [IdleResList]),
+
+    OutputJSON = convert_to_json(TimedResList, IdleResList, Coordinate),
+    io:format("JSON: ~p\n", [OutputJSON]),
+
+    JsonString = jsx:encode(OutputJSON),
+    file:write_file("/home/aryan.g/workspace/observer/data.json", JsonString).
 
 print_reservations_for_coordinate(Coordinate) ->
     PathCalcInputFilename =
-        "/tmp/cowhca-debug-input-1713443603888/path-calc-input-300-1713443608614.txt",
+        "/tmp/cowhca-debug-input-1713766417797/path-calc-input-300-1713766419854.txt",
     StaticInputFilename =
-        "/tmp/cowhca-debug-input-1713443603888/static-input.txt",
+        "/tmp/cowhca-debug-input-1713766417797/static-input.txt",
     {ok, FileContent} = file:read_file(PathCalcInputFilename),
     {_, _, _, _, #reservation_table{} = ResTable, _, _, _, _, _} = erlang:binary_to_term(
         FileContent
     ),
 
     io:format("Original reservations:\n"),
-    print_reservations_for_coordinate_helper(Coordinate, ResTable),
+    print_reservations_for_coordinate_helper(Coordinate, ResTable).
 
-    ResTable1 = get_next_res_table(StaticInputFilename, PathCalcInputFilename),
-    io:format("Next reservations:\n"),
-    print_reservations_for_coordinate_helper(Coordinate, ResTable1).
+    % ResTable1 = get_next_res_table(StaticInputFilename, PathCalcInputFilename),
+    % io:format("Next reservations:\n"),
+    % print_reservations_for_coordinate_helper(Coordinate, ResTable1).
 
 get_next_res_table(StaticInputFilename, PathCalcInputFilename) ->
     {ok, StaticFileContent} = file:read_file(StaticInputFilename),
