@@ -51,53 +51,53 @@
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
   <script>
     fetch('data.json')
-      .then(response => response.json())
-      .then(data1 => {
+      .then(Response => Response.json())
+      .then(InputData => {
 
-        function jsonify(SuedoJSON) {
-          strJson = JSON.stringify(SuedoJSON);
-          return JSON.parse(strJson);
+        function jsonify(SuedoJson) {
+          StrJson = JSON.stringify(SuedoJson);
+          return JSON.parse(StrJson);
         }
 
-        strJsonData1 = JSON.stringify(data1);
-        JsonData1 = JSON.parse(strJsonData1);
+        StrJsonData = JSON.stringify(InputData);
+        JsonData = JSON.parse(StrJsonData);
         
-        Coordinate = JsonData1.coordinate;
-        TimedResList = JsonData1.timed_reservations;
-        IdleResList = JsonData1.idle_reservations;
+        Coordinate = JsonData.coordinate;
+        TimedResList = JsonData.timed_reservations;
+        IdleResList = JsonData.idle_reservations;
 
         console.log("TimedResList: ", TimedResList);
         console.log("IdleResList: ", IdleResList);
         console.log("Coordinate: ", Coordinate);
         
-        const uniqueButlerIds = new Set();
-        TimedResList.forEach(reservation => uniqueButlerIds.add(reservation.butler_id));
-        IdleResList.forEach(reservation => uniqueButlerIds.add(reservation.butler_id));
-        const butlerIds = Array.from(uniqueButlerIds);
-        
         Coordinate = jsonify(Coordinate);
 
-        for (let i = 0; i < TimedResList.length; i++) {
-          reservation = TimedResList[i];
-          const butlerId = reservation.butler_id;
-          const startTime = reservation.start_time;
-          const endTime = reservation.end_time;
+        const UniqueButlerIds = new Set();
+        TimedResList.forEach(Reservation => UniqueButlerIds.add(Reservation.butler_id));
+        IdleResList.forEach(Reservation => UniqueButlerIds.add(Reservation.butler_id));
+        const ButlerIds = Array.from(UniqueButlerIds);
 
-          TimedResList[i] = {x: [startTime, endTime], y: butlerId};
+        for (let i = 0; i < TimedResList.length; i++) {
+          Reservation = TimedResList[i];
+          const ButlerId = Reservation.butler_id;
+          const StartTime = Reservation.start_time;
+          const EndTime = Reservation.end_time;
+
+          TimedResList[i] = {x: [StartTime, EndTime], y: ButlerId};
           TimedResList[i] = jsonify(TimedResList[i]);
         }
 
         for (let i = 0; i < IdleResList.length; i++) {
-          reservation = IdleResList[i];
-          const butlerId = reservation.butler_id;
-          const startTime = reservation.start_time;
+          Reservation = IdleResList[i];
+          const ButlerId = Reservation.butler_id;
+          const StartTime = Reservation.start_time;
 
-          IdleResList[i] = {x: [startTime, 100], y: butlerId};
+          IdleResList[i] = {x: [StartTime, 100], y: ButlerId};
           IdleResList[i] = jsonify(IdleResList[i]);
         }
 
         function callback_function(value, index, ticks) {
-          if(butlerIds.includes(value))
+          if(ButlerIds.includes(value))
           {
             return value;
           }
